@@ -3,13 +3,11 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const exphbs = require('express-handlebars');
+const db = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000; // fix port issue 
+const PORT = process.env.PORT || 4111; // fix port issue 
 
-//'database' 
-const users = [];
-const comments = [];
 
 // middleware 
 app.use(express.urlencoded({ extended: true }));
@@ -50,21 +48,24 @@ app.get('/register', (req, res) => {
   res.render('register');
 });
 
-//create the user in memory
+//create the user in database
 app.post('/register', (req, res) => {
   const { username, password } = req.body;
 
-  // check duplicate
-  const exists = users.find((u) => u.username === username);
-  if (exists) {
-    return res.status(400).render('register', {
-      error: 'Username already taken.',
-    });
+  try {
+    const stmt = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
+    stmt.run(username, password);
+    // after registering, send them to login
+    res.redirect('/login');
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.status(400).render('register', {
+        error: 'Username already taken.',
+      });
+    }
+    console.error(err);
+    res.status(500).send('Internal Server Error');
   }
-
-  users.push({ username, password });
-  // after registering, send them to login
-  res.redirect('/login');
 });
 
 // show form 
@@ -76,19 +77,27 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
-  const user = users.find(
-    (u) => u.username === username && u.password === password
-  );
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    const success = user && user.password === password;
 
-  if (!user) {
-    return res.status(401).render('login', {
-      error: 'Invalid username or password.',
-    });
+    // Log login attempt
+    db.prepare('INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)').run(username, req.ip, success ? 1 : 0);
+
+    if (!success) {
+      return res.status(401).render('login', {
+        error: 'Invalid username or password.',
+      });
+    }
+
+    // set session
+    req.session.username = user.username;
+    req.session.userId = user.id;
+    res.redirect('/comments');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
   }
-
-  // set session
-  req.session.username = username;
-  res.redirect('/comments');
 });
 
 //get rid of the current session
@@ -100,7 +109,18 @@ app.post('/logout', (req, res) => {
 
 // list all of the comments
 app.get('/comments', (req, res) => {
-  res.render('comments', { comments });
+  try {
+    const comments = db.prepare(`
+      SELECT comments.text, comments.created_at, users.username as author
+      FROM comments
+      JOIN users ON comments.user_id = users.id
+      ORDER BY comments.created_at DESC
+    `).all();
+    res.render('comments', { comments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // show forum if logged in
@@ -112,21 +132,21 @@ app.get('/comment/new', (req, res) => {
   res.render('newComment');
 });
 
-// add comment in memory array 
+// add comment in database
 app.post('/comment', (req, res) => {
-  if (!req.session.username) {
+  if (!req.session.userId) {
     return res.redirect('/login');
   }
 
   const { text } = req.body;
 
-  comments.push({
-    author: req.session.username,
-    text,
-    createdAt: new Date(),
-  });
-
-  res.redirect('/comments');
+  try {
+    db.prepare('INSERT INTO comments (user_id, text) VALUES (?, ?)').run(req.session.userId, text);
+    res.redirect('/comments');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // start up the server, listen for connection

@@ -1,5 +1,5 @@
 {
-  "name": "github-test",
+  "name": "not-so-wild-west",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
@@ -9,17 +9,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/clsc411/reporepo.git"
+    "url": "git+https://github.com/clsc411/NotSoWildWest.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/clsc411/reporepo/issues"
+    "url": "https://github.com/clsc411/NotSoWildWest/issues"
   },
-  "homepage": "https://github.com/clsc411/reporepo#readme",
+  "homepage": "https://github.com/clsc411/NotSoWildWest#readme",
   "dependencies": {
+    "better-sqlite3": "^12.5.0",
     "express": "^5.1.0",
     "express-handlebars": "^8.0.3",
-    "express-session": "^1.18.2"
+    "express-session": "^1.18.2",
+    "handlebars": "^4.7.8"
   }
 }
