@@ -1,0 +1,11 @@
+<h2>Howdy, All Comments</h2>
+<ul>
+  {{#each comments}}
+    <li><strong>{{author}}</strong> ({{createdAt}}): {{text}}</li>
+  {{else}}
+    <li>No comments yet.</li>
+  {{/each}}
+</ul>
+{{#if currentUser}}
+  <a href="/comment/new">Post a new comment</a>
+{{/if}}

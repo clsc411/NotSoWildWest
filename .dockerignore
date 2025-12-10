@@ -1,0 +1,7 @@
+node_modulus #handled by npm install 
+
+nginx #for other container 
+.git
+.gitignore
+Dockerfile
+docker-compose.yml

@@ -1,0 +1,14 @@
+services:
+  nodejs:
+    build: .                       # Build the node.js app from the current directory
+    container_name: wildwest-node  # name the container for node.js
+    expose:
+      - "3000"                    # Expose port 3000 to other containers (not to host)
+
+  nginx:
+    build: ./nginx                # build the nginx image from the ./nginx directory
+    container_name: wildwest-nginx # Name the container for nginx
+    ports:
+      - "4111:80"                 # Map port 8080 on host to port 80 in the container
+    depends_on:
+      - nodejs                    # start nginx after Node.js
