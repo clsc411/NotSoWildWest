@@ -8,6 +8,8 @@ const db = require('./db');
 const app = express();
 const PORT = process.env.PORT || 4111; // fix port issue 
 
+// Trust proxy (required for correct IP logging and secure cookies behind Nginx/NPM)
+app.set('trust proxy', true);
 
 // middleware 
 app.use(express.urlencoded({ extended: true }));

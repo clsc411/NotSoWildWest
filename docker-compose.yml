@@ -8,7 +8,22 @@ services:
   nginx:
     build: ./nginx                # build the nginx image from the ./nginx directory
     container_name: wildwest-nginx # Name the container for nginx
-    ports:
-      - "4111:80"                 # Map port 8080 on host to port 80 in the container
+    expose:
+      - "80"                      # Expose port 80 to other containers (NPM will proxy to this)
     depends_on:
       - nodejs                    # start nginx after Node.js
+
+  npm:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: wildwest-npm
+    restart: unless-stopped
+    ports:
+      - '80:80'                   # Public HTTP Port
+      - '81:81'                   # Admin Web Port
+      - '443:443'                 # Public HTTPS Port
+    volumes:
+      - ./npm-data:/data
+      - ./npm-letsencrypt:/etc/letsencrypt
+    depends_on:
+      - nginx                     # Ensure app is up before proxy
+
