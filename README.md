@@ -19,7 +19,7 @@ This forum is a basic node.js and express web app using handlebars for templates
    *   Update your admin details when prompted.
    *   Go to **Hosts** -> **Proxy Hosts** -> **Add Proxy Host**.
    *   **Details Tab**:
-       *   **Domain Names**: Enter your domain (e.g., `example.com`).
+       *   **Domain Names**: claracode.org.
        *   **Scheme**: `http`
        *   **Forward Hostname**: `wildwest-nginx`
        *   **Forward Port**: `80`
@@ -32,6 +32,8 @@ This forum is a basic node.js and express web app using handlebars for templates
        *   Agree to the Terms of Service and click **Save**.
 **4.** Open the app in your browser at your domain (e.g., `https://example.com`).
 **5.** To stop the running app: ' sudo docker compose down '
+
+**NOTE:** GenAI was used for help with clean ReadME formatting help, CSS styling fixes 
 
 ## Notes
 **Passwords are hashed using SQLite, but still exercise caution.**
