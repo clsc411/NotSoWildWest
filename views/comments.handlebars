@@ -1,7 +1,14 @@
 <h2>Howdy, All Comments</h2>
 <ul>
   {{#each comments}}
-    <li><strong>{{author}}</strong> ({{createdAt}}): {{text}}</li>
+    <li>
+      <span style="font-size: 1.2em;">{{authorAvatar}}</span>
+      <strong style="color: {{authorColor}};">{{author}}</strong> 
+      ({{createdAt}}): {{text}}
+      {{#if authorBio}}
+        <br><small style="color: gray; margin-left: 20px;">{{authorBio}}</small>
+      {{/if}}
+    </li>
   {{else}}
     <li>No comments yet.</li>
   {{/each}}

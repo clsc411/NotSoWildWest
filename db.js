@@ -23,8 +23,8 @@ function initDb() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL, -- Hashed password
-        email TEXT,
-        display_name TEXT,
+        email TEXT UNIQUE NOT NULL,
+        display_name TEXT NOT NULL,
         profile_customization TEXT, -- JSON string for customization
         failed_login_attempts INTEGER DEFAULT 0,
         lockout_until DATETIME

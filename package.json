@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/clsc411/NotSoWildWest#readme",
   "dependencies": {
+    "argon2": "^0.44.0",
     "better-sqlite3": "^12.5.0",
     "express": "^5.1.0",
     "express-handlebars": "^8.0.3",

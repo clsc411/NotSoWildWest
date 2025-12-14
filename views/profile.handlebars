@@ -1,0 +1,42 @@
+<h2>Profile Settings</h2>
+<form method="POST" action="/profile">
+  <label>Display Name: <input name="displayName" value="{{currentUserDisplayName}}" required></label><br>
+  <label>Email: <input type="email" name="email" value="{{currentUserEmail}}" required></label><br>
+  
+  <fieldset>
+    <legend>Customization</legend>
+    <label>Name Color: <input type="color" name="color" value="{{profileColor}}"></label><br>
+    <label>Avatar: 
+      <select name="avatar">
+        <option value="🤠" {{#if (eq profileAvatar "🤠")}}selected{{/if}}>🤠 Cowboy</option>
+        <option value="🐴" {{#if (eq profileAvatar "🐴")}}selected{{/if}}>🐴 Horse</option>
+        <option value="🌵" {{#if (eq profileAvatar "🌵")}}selected{{/if}}>🌵 Cactus</option>
+        <option value="⭐" {{#if (eq profileAvatar "⭐")}}selected{{/if}}>⭐ Star</option>
+        <option value="👻" {{#if (eq profileAvatar "👻")}}selected{{/if}}>👻 Ghost</option>
+      </select>
+    </label><br>
+    <label>Bio (max 200 chars):<br>
+      <textarea name="bio" maxlength="200">{{profileBio}}</textarea>
+    </label>
+  </fieldset>
+  <br>
+
+  <label>Current Password (required to save changes): <input type="password" name="password" required></label><br>
+  <button type="submit">Update Profile</button>
+</form>
+
+<hr>
+<h3>Change Password</h3>
+<form method="POST" action="/change-password">
+  <label>Current Password: <input type="password" name="currentPassword" required></label><br>
+  <label>New Password: <input type="password" name="newPassword" required></label><br>
+  <button type="submit">Update Password</button>
+</form>
+
+{{#if error}}
+<p style="color:red;">{{error}}</p>
+{{/if}}
+
+{{#if success}}
+<p style="color:green;">{{success}}</p>
+{{/if}}
