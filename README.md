@@ -19,7 +19,7 @@ This forum is a basic node.js and express web app using handlebars for templates
    *   Update your admin details when prompted.
    *   Go to **Hosts** -> **Proxy Hosts** -> **Add Proxy Host**.
    *   **Details Tab**:
-       *   **Domain Names**: Enter your domain (e.g., `example.com`).
+       *   **Domain Names**: claracode.org.
        *   **Scheme**: `http`
        *   **Forward Hostname**: `wildwest-nginx`
        *   **Forward Port**: `80`
@@ -33,6 +33,7 @@ This forum is a basic node.js and express web app using handlebars for templates
 **4.** Open the app in your browser at your domain (e.g., `https://example.com`).
 **5.** To stop the running app: ' sudo docker compose down '
 
+<<<<<<< HEAD
 ## Configuration
 
 ### Email Service (Gmail)
@@ -49,9 +50,6 @@ To enable password reset emails, you need to configure a Gmail account.
     EMAIL_PASS=your-app-password
     ```
     *Note: For Gmail, you must use an **App Password**, not your regular password. Go to Google Account > Security > 2-Step Verification > App passwords to generate one.*
-
-## Notes
-**Passwords are hashed using SQLite, but still exercise caution.**
-**Data is persisted in `forum.db`.**
-
-**URL:** ' [https://your-domain.com] '
+=======
+**NOTE:** GenAI was used for help with clean ReadME formatting help, CSS styling fixes 
+>>>>>>> a495faeb6df726e133e630e125166cc3e139ca01
