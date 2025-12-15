@@ -27,9 +27,23 @@ function initDb() {
         display_name TEXT NOT NULL,
         profile_customization TEXT, -- JSON string for customization
         failed_login_attempts INTEGER DEFAULT 0,
-        lockout_until DATETIME
+        lockout_until DATETIME,
+        reset_token TEXT,
+        reset_token_expires DATETIME
       )
     `);
+
+    // Add columns if they don't exist (migration for existing DB)
+    try {
+      db.exec('ALTER TABLE users ADD COLUMN reset_token TEXT');
+    } catch (e) {
+      // Column likely exists
+    }
+    try {
+      db.exec('ALTER TABLE users ADD COLUMN reset_token_expires DATETIME');
+    } catch (e) {
+      // Column likely exists
+    }
 
     // sessions Table
     // This is a generic schema based on the request
@@ -46,6 +60,17 @@ function initDb() {
     // comments Table
     db.exec(`
       CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        text TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // chat_messages Table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         text TEXT NOT NULL,

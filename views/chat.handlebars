@@ -1,0 +1,58 @@
+<h2>Wild West Chat</h2>
+<div id="chat-container" style="border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: scroll; margin-bottom: 10px; background-color: #f9f9f9;">
+    <ul id="messages" style="list-style-type: none; padding: 0;"></ul>
+</div>
+<form id="chat-form" action="">
+    <input id="m" autocomplete="off" style="width: 80%; padding: 10px;" placeholder="Type a message..." /><button style="width: 18%; padding: 10px;">Send</button>
+</form>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('m');
+  const messages = document.getElementById('messages');
+  const chatContainer = document.getElementById('chat-container');
+
+  // Function to append message
+  function appendMessage(msg) {
+    const item = document.createElement('li');
+    item.style.marginBottom = '10px';
+    item.style.borderBottom = '1px solid #eee';
+    item.style.paddingBottom = '5px';
+
+    const avatar = msg.avatar || '🤠';
+    const color = msg.color || '#000000';
+    
+    item.innerHTML = `
+        <span style="font-size: 1.2em;">${avatar}</span>
+        <strong style="color: ${color};">${msg.user}</strong> 
+        <small style="color: gray;">(${new Date(msg.timestamp).toLocaleTimeString()})</small>: 
+        <span>${msg.text}</span>
+    `;
+    
+    messages.appendChild(item);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+
+  // Load history on connect
+  fetch('/api/chat/history')
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(msg => appendMessage(msg));
+    })
+    .catch(err => console.error('Error loading chat history:', err));
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (input.value) {
+      socket.emit('chat message', input.value);
+      input.value = '';
+    }
+  });
+
+  socket.on('chat message', function(msg) {
+    appendMessage(msg);
+  });
+</script>

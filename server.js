@@ -1,28 +1,37 @@
 
+require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const path = require('path');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const session = require('express-session');
 const exphbs = require('express-handlebars');
 const db = require('./db');
 const { validatePassword, hashPassword, comparePassword } = require('./modules/password-utils');
 
 const app = express();
-const PORT = process.env.PORT || 4111; // fix port issue 
+const server = http.createServer(app);
+const io = new Server(server);
 
-// Trust proxy (required for correct IP logging and secure cookies behind Nginx/NPM)
+const PORT = process.env.PORT || 4111; // fix port issue
+
+// trust proxy for nginx
 app.set('trust proxy', true);
 
-// middleware 
+// middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(
-  session({
-    secret: 'this-is-intentionally-insecure',
-    resave: false,
-    saveUninitialized: true,
-  })
-);
+const sessionMiddleware = session({
+  secret: 'this-is-intentionally-insecure',
+  resave: false,
+  saveUninitialized: true,
+});
+
+app.use(sessionMiddleware);
+io.engine.use(sessionMiddleware);
 
 app.engine(
   'handlebars',
@@ -38,7 +47,7 @@ app.engine(
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'views'));
 
-// make the user available to ALL views
+// make user available to views
 app.use((req, res, next) => {
   res.locals.currentUser = req.session.displayName || req.session.username || null;
   next();
@@ -49,16 +58,16 @@ app.get('/', (req, res) => {
   res.render('home'); // views/home.handlebars
 });
 
-// show register form 
+// show register form
 app.get('/register', (req, res) => {
   res.render('register');
 });
 
-//create the user in database
+// create user in database
 app.post('/register', async (req, res) => {
   const { username, email, displayName, password } = req.body;
 
-  // Validate email format
+  // validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).render('register', {
@@ -66,14 +75,14 @@ app.post('/register', async (req, res) => {
     });
   }
 
-  // Validate display name != username
+  // validate display name
   if (displayName === username) {
     return res.status(400).render('register', {
       error: 'Display name must be different from username.',
     });
   }
 
-  // Validate password strength
+  // validate password strength
   const passwordCheck = validatePassword(password);
   if (!passwordCheck.valid) {
     return res.status(400).render('register', {
@@ -85,11 +94,11 @@ app.post('/register', async (req, res) => {
     const hashedPassword = await hashPassword(password);
     const stmt = db.prepare('INSERT INTO users (username, email, display_name, password) VALUES (?, ?, ?, ?)');
     stmt.run(username, email, displayName, hashedPassword);
-    // after registering, send them to login
+    // redirect to login after register
     res.redirect('/login');
   } catch (err) {
     if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      // Check which field caused the error
+      // check error field
       if (err.message.includes('users.username')) {
         return res.status(400).render('register', { error: 'Username already taken.' });
       } else if (err.message.includes('users.email')) {
@@ -104,21 +113,21 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// show form 
+// show login form
 app.get('/login', (req, res) => {
   res.render('login');
 });
 
-// check credentials and post the session
+// check credentials and create session
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
     
-    // Check if account is locked
+    // check if account locked
     if (user && user.lockout_until && new Date(user.lockout_until) > new Date()) {
-      // Log blocked attempt
+      // log blocked attempt
       db.prepare('INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)').run(username, req.ip, 0);
       return res.status(403).render('login', {
         error: 'Account is temporarily locked. Please try again later.',
@@ -130,11 +139,11 @@ app.post('/login', async (req, res) => {
       success = await comparePassword(password, user.password);
     }
 
-    // Log login attempt
+    // log login attempt
     db.prepare('INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)').run(username, req.ip, success ? 1 : 0);
 
     if (success) {
-      // Reset failed attempts on successful login
+      // reset failed attempts
       db.prepare('UPDATE users SET failed_login_attempts = 0, lockout_until = NULL WHERE id = ?').run(user.id);
 
       // set session
@@ -142,12 +151,12 @@ app.post('/login', async (req, res) => {
       req.session.userId = user.id;
       res.redirect('/comments');
     } else {
-      // Handle failed login
+      // handle failed login
       if (user) {
         const newFailedAttempts = (user.failed_login_attempts || 0) + 1;
         let lockoutUntil = user.lockout_until;
 
-        // Lockout logic: 5 failed attempts locks for 15 minutes
+        // lockout after 5 failed attempts
         if (newFailedAttempts >= 5) {
           lockoutUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
         }
@@ -166,14 +175,14 @@ app.post('/login', async (req, res) => {
   }
 });
 
-//get rid of the current session
+// destroy session
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
   });
 });
 
-// list all of the comments
+// list all comments
 app.get('/comments', (req, res) => {
   try {
     const comments = db.prepare(`display_
@@ -183,7 +192,7 @@ app.get('/comments', (req, res) => {
       ORDER BY comments.created_at DESC
     `).all();
 
-    // Parse profile customization for each comment
+    // parse profile customization
     const commentsWithProfile = comments.map(c => {
       let profile = {};
       try {
@@ -209,13 +218,13 @@ app.get('/comments', (req, res) => {
 // show forum if logged in
 app.get('/comment/new', (req, res) => {
   if (!req.session.username) {
-    // not logged in, send to login
+    // redirect if not logged in
     return res.redirect('/login');
   }
   res.render('newComment');
 });
 
-// add comment in database
+// add comment to database
 app.post('/comment', (req, res) => {
   if (!req.session.userId) {
     return res.redirect('/login');
@@ -232,7 +241,7 @@ app.post('/comment', (req, res) => {
   }
 });
 
-// profile form
+// show profile form
 app.get('/profile', (req, res) => {
   if (!req.session.userId) {
     return res.redirect('/login');
@@ -269,7 +278,7 @@ app.post('/profile', async (req, res) => {
   const username = req.session.username; // Get username from session for validation
 
   try {
-    // Verify password first
+    // verify password first
     const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.session.userId);
     const validPassword = await comparePassword(password, user.password);
     
@@ -284,7 +293,7 @@ app.post('/profile', async (req, res) => {
       });
     }
 
-    // Validate email format
+    // validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).render('profile', {
@@ -297,7 +306,7 @@ app.post('/profile', async (req, res) => {
       });
     }
 
-    // Validate display name != username
+    // validate display name
     if (displayName === username) {
       return res.status(400).render('profile', {
         error: 'Display name must be different from username.',
@@ -309,7 +318,7 @@ app.post('/profile', async (req, res) => {
       });
     }
 
-    // Validate display name length and characters
+    // validate display name length
     if (displayName.length < 3 || displayName.length > 30) {
       return res.status(400).render('profile', {
         error: 'Display name must be between 3 and 30 characters.',
@@ -331,8 +340,8 @@ app.post('/profile', async (req, res) => {
       });
     }
 
-    // Validate customization
-    // Color: simple hex check
+    // validate customization
+    // validate color hex
     if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
        return res.status(400).render('profile', {
         error: 'Invalid color format.',
@@ -344,7 +353,7 @@ app.post('/profile', async (req, res) => {
       });
     }
 
-    // Bio: length check
+    // validate bio length
     if (bio && bio.length > 200) {
        return res.status(400).render('profile', {
         error: 'Bio must be under 200 characters.',
@@ -365,7 +374,7 @@ app.post('/profile', async (req, res) => {
     db.prepare('UPDATE users SET display_name = ?, email = ?, profile_customization = ? WHERE id = ?')
       .run(displayName, email, customization, req.session.userId);
     
-    // Update session
+    // update session
     req.session.displayName = displayName;
     
     res.render('profile', {
@@ -392,7 +401,6 @@ app.post('/profile', async (req, res) => {
   }
 });
 
-// show 
 // show change password form
 app.get('/change-password', (req, res) => {
   if (!req.session.userId) {
@@ -410,10 +418,10 @@ app.post('/change-password', async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   try {
-    // Get current user
+    // get current user
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
 
-    // Verify current password
+    // verify current password
     const validCurrent = await comparePassword(currentPassword, user.password);
     if (!validCurrent) {
       return res.status(400).render('changePassword', {
@@ -421,7 +429,7 @@ app.post('/change-password', async (req, res) => {
       });
     }
 
-    // Validate new password strength
+    // validate new password strength
     const passwordCheck = validatePassword(newPassword);
     if (!passwordCheck.valid) {
       return res.status(400).render('changePassword', {
@@ -429,11 +437,11 @@ app.post('/change-password', async (req, res) => {
       });
     }
 
-    // Hash new password and update
+    // hash and update password
     const hashedNewPassword = await hashPassword(newPassword);
     db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedNewPassword, req.session.userId);
 
-    // Invalidate session to force re-login
+    // invalidate session
     req.session.destroy(() => {
       res.redirect('/login');
     });
@@ -444,7 +452,255 @@ app.post('/change-password', async (req, res) => {
   }
 });
 
-// start up the server, listen for connection
-app.listen(PORT, '0.0.0.0', () => {
+// show forgot password form
+app.get('/forgot-password', (req, res) => {
+  res.render('forgotPassword');
+});
+
+// handle forgot password
+app.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+    if (!user) {
+      // do not reveal email existence
+      return res.render('forgotPassword', {
+        success: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    }
+
+    // generate token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
+
+    // save token to db
+    db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?')
+      .run(token, expires, user.id);
+
+    const resetLink = `http://159.203.136.153:${PORT}/reset-password/${token}`;
+
+    // send email
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const transporter = nodemailer.createTransport({
+        service: process.env.EMAIL_SERVICE || 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        }
+      });
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Password Reset - NotSoWildWest Forum',
+        text: `You requested a password reset. Click the link below to reset your password:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.`,
+        html: `<p>You requested a password reset.</p><p>Click the link below to reset your password:</p><a href="${resetLink}">${resetLink}</a><p>If you did not request this, please ignore this email.</p>`
+      });
+      console.log(`[EMAIL SENT] Password reset link sent to ${email}`);
+    } else {
+      console.log(`[MOCK EMAIL] Password reset link for ${email}: ${resetLink}`);
+      console.log('To enable real emails, configure EMAIL_USER and EMAIL_PASS in .env');
+    }
+
+    res.render('forgotPassword', {
+      success: 'If an account with that email exists, a password reset link has been sent.'
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// show reset password form
+app.get('/reset-password/:token', (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE reset_token = ? AND reset_token_expires > ?')
+      .get(token, new Date().toISOString());
+
+    if (!user) {
+      return res.render('forgotPassword', {
+        error: 'Password reset token is invalid or has expired.'
+      });
+    }
+
+    res.render('resetPassword', { token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// handle reset password
+app.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE reset_token = ? AND reset_token_expires > ?')
+      .get(token, new Date().toISOString());
+
+    if (!user) {
+      return res.render('forgotPassword', {
+        error: 'Password reset token is invalid or has expired.'
+      });
+    }
+
+    // validate new password strength
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      return res.render('resetPassword', {
+        token,
+        error: passwordCheck.errors.join(' ')
+      });
+    }
+
+    // hash new password
+    const hashedPassword = await hashPassword(password);
+
+    // update password and clear token
+    db.prepare('UPDATE users SET password = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?')
+      .run(hashedNewPassword, user.id);
+
+    res.render('login', {
+      success: 'Password has been reset successfully. Please login.'
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// start server
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Wild West Forum running at http://159.203.136.153/:${PORT}`);
+});
+
+// chat route
+app.get('/chat', (req, res) => {
+  if (!req.session.userId) {
+    return res.redirect('/login');
+  }
+  res.render('chat');
+});
+
+// api get chat history
+app.get('/api/chat/history', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const messages = db.prepare(`
+      SELECT chat_messages.text, chat_messages.created_at as timestamp, users.display_name as user, users.profile_customization
+      FROM chat_messages
+      JOIN users ON chat_messages.user_id = users.id
+      ORDER BY chat_messages.created_at ASC
+      LIMIT 50
+    `).all();
+
+    const formattedMessages = messages.map(m => {
+      let profile = {};
+      try {
+        profile = JSON.parse(m.profile_customization || '{}');
+      } catch (e) {}
+      return {
+        user: m.user,
+        text: m.text,
+        timestamp: m.timestamp,
+        color: profile.color || '#000000',
+        avatar: profile.avatar || '🤠'
+      };
+    });
+
+    res.json(formattedMessages);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// api send message
+app.post('/api/chat/message', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  try {
+    // save to db
+    db.prepare('INSERT INTO chat_messages (user_id, text) VALUES (?, ?)').run(req.session.userId, message);
+
+    // fetch user details
+    const user = db.prepare('SELECT display_name, profile_customization FROM users WHERE id = ?').get(req.session.userId);
+    let profile = {};
+    try {
+      profile = JSON.parse(user.profile_customization || '{}');
+    } catch (e) {}
+
+    const msgData = {
+      user: user.display_name,
+      text: message,
+      timestamp: new Date(),
+      color: profile.color || '#000000',
+      avatar: profile.avatar || '🤠'
+    };
+
+    // broadcast via socket
+    io.emit('chat message', msgData);
+
+    res.json({ success: true, message: msgData });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// socket logic
+io.on('connection', (socket) => {
+  const session = socket.request.session;
+  
+  if (session && session.userId) {
+    console.log(`User connected: ${session.username}`);
+    
+    socket.on('chat message', (msg) => {
+      // fetch latest customization
+      try {
+        // save to db
+        db.prepare('INSERT INTO chat_messages (user_id, text) VALUES (?, ?)').run(session.userId, msg);
+
+        const user = db.prepare('SELECT display_name, profile_customization FROM users WHERE id = ?').get(session.userId);
+        let profile = {};
+        try {
+          profile = JSON.parse(user.profile_customization || '{}');
+        } catch (e) {}
+
+        io.emit('chat message', {
+          user: user.display_name,
+          text: msg,
+          timestamp: new Date(),
+          color: profile.color || '#000000',
+          avatar: profile.avatar || '🤠'
+        });
+      } catch (err) {
+        console.error('Error fetching user for chat:', err);
+      }
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`User disconnected: ${session.username}`);
+    });
+  } else {
+    console.log('Unauthenticated user connected to socket');
+    socket.disconnect();
+  }
 });

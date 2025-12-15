@@ -5,6 +5,12 @@
   <button type="submit">Login</button>
 </form>
 
+<p><a href="/forgot-password">Forgot Password?</a></p>
+
+{{#if success}}
+<p style="color:green;">{{success}}</p>
+{{/if}}
+
 {{#if error}}
 <p style="color:red;">{{error}}</p>
 {{/if}}

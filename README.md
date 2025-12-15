@@ -33,6 +33,23 @@ This forum is a basic node.js and express web app using handlebars for templates
 **4.** Open the app in your browser at your domain (e.g., `https://example.com`).
 **5.** To stop the running app: ' sudo docker compose down '
 
+## Configuration
+
+### Email Service (Gmail)
+To enable password reset emails, you need to configure a Gmail account.
+
+1.  Create a `.env` file in the root directory (copy from `.env.example`):
+    ```bash
+    cp .env.example .env
+    ```
+2.  Edit `.env` and add your Gmail credentials:
+    ```env
+    EMAIL_SERVICE=gmail
+    EMAIL_USER=your-email@gmail.com
+    EMAIL_PASS=your-app-password
+    ```
+    *Note: For Gmail, you must use an **App Password**, not your regular password. Go to Google Account > Security > 2-Step Verification > App passwords to generate one.*
+
 ## Notes
 **Passwords are hashed using SQLite, but still exercise caution.**
 **Data is persisted in `forum.db`.**
