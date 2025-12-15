@@ -90,6 +90,10 @@ function initDb() {
       )
     `);
 
+    // Indexes for optimization
+    db.exec('CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at)');
+
     // commit the transaction
     db.prepare('COMMIT').run();
     console.log('Database schema initialized successfully.');

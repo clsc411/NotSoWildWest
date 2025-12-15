@@ -185,12 +185,23 @@ app.post('/logout', (req, res) => {
 // list all comments
 app.get('/comments', (req, res) => {
   try {
-    const comments = db.prepare(`display_
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = 20;
+    const offset = (page - 1) * limit;
+
+    // get total count
+    const countResult = db.prepare('SELECT COUNT(*) as count FROM comments').get();
+    const totalComments = countResult.count;
+    const totalPages = Math.ceil(totalComments / limit);
+
+    // get paginated comments
+    const comments = db.prepare(`
       SELECT comments.text, comments.created_at, users.display_name as author, users.profile_customization
       FROM comments
       JOIN users ON comments.user_id = users.id
       ORDER BY comments.created_at DESC
-    `).all();
+      LIMIT ? OFFSET ?
+    `).all(limit, offset);
 
     // parse profile customization
     const commentsWithProfile = comments.map(c => {
@@ -208,12 +219,23 @@ app.get('/comments', (req, res) => {
       };
     });
 
-    res.render('comments', { comments: commentsWithProfile });
+    res.render('comments', {
+      comments: commentsWithProfile,
+      currentPage: page,
+      totalPages: totalPages,
+      totalComments: totalComments,
+      hasPrev: page > 1,
+      hasNext: page < totalPages,
+      prevPage: page - 1,
+      nextPage: page + 1,
+      showPagination: totalPages > 1
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send('Internal Server Error');
   }
 });
+
 
 // show forum if logged in
 app.get('/comment/new', (req, res) => {
