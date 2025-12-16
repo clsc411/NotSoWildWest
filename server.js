@@ -196,7 +196,7 @@ app.get('/comments', (req, res) => {
 
     // get paginated comments
     const comments = db.prepare(`
-      SELECT comments.text, comments.created_at, users.display_name as author, users.profile_customization
+      SELECT comments.text, comments.created_at, users.display_name as author, users.username as authorUsername, users.profile_customization
       FROM comments
       JOIN users ON comments.user_id = users.id
       ORDER BY comments.created_at DESC
@@ -213,6 +213,7 @@ app.get('/comments', (req, res) => {
       }
       return {
         ...c,
+        authorUsername: c.authorUsername,
         authorColor: profile.color || '#000000',
         authorAvatar: profile.avatar || '🤠',
         authorBio: profile.bio || ''
@@ -244,6 +245,63 @@ app.get('/comment/new', (req, res) => {
     return res.redirect('/login');
   }
   res.render('newComment');
+});
+
+// user profile route
+app.get('/user/:username', (req, res) => {
+  const { username } = req.params;
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = 20;
+  const offset = (page - 1) * limit;
+
+  try {
+    // get user details
+    const user = db.prepare('SELECT id, display_name, username, profile_customization FROM users WHERE username = ?').get(username);
+
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    let profile = {};
+    try {
+      profile = JSON.parse(user.profile_customization || '{}');
+    } catch (e) {}
+
+    // get total comments count for user
+    const countResult = db.prepare('SELECT COUNT(*) as count FROM comments WHERE user_id = ?').get(user.id);
+    const totalComments = countResult.count;
+    const totalPages = Math.ceil(totalComments / limit);
+
+    // get paginated comments for user
+    const comments = db.prepare(`
+      SELECT text, created_at
+      FROM comments
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `).all(user.id, limit, offset);
+
+    res.render('userProfile', {
+      profileDisplayName: user.display_name,
+      profileUsername: user.username,
+      profileColor: profile.color || '#000000',
+      profileAvatar: profile.avatar || '🤠',
+      profileBio: profile.bio || '',
+      comments: comments,
+      currentPage: page,
+      totalPages: totalPages,
+      totalComments: totalComments,
+      hasPrev: page > 1,
+      hasNext: page < totalPages,
+      prevPage: page - 1,
+      nextPage: page + 1,
+      showPagination: totalPages > 1
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // add comment to database

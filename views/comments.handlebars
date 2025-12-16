@@ -2,8 +2,10 @@
 <ul>
   {{#each comments}}
     <li>
-      <span style="font-size: 1.2em;">{{authorAvatar}}</span>
-      <strong style="color: {{authorColor}};">{{author}}</strong> 
+      <a href="/user/{{authorUsername}}" style="text-decoration: none;">
+        <span style="font-size: 1.2em;">{{authorAvatar}}</span>
+        <strong style="color: {{authorColor}};">{{author}}</strong> 
+      </a>
       ({{createdAt}}): {{text}}
       {{#if authorBio}}
         <br><small style="color: gray; margin-left: 20px;">{{authorBio}}</small>
