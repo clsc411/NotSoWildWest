@@ -1,9 +1,9 @@
-node_modules #handled by npm install 
+node_modules
 data
 npm-data
 npm-letsencrypt
 
-nginx #for other container 
+nginx
 .git
 .gitignore
 Dockerfile
