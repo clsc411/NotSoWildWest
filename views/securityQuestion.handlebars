@@ -1,0 +1,17 @@
+<h2>Security Question</h2>
+<p>Please answer the following security question to reset your password.</p>
+
+<form method="POST" action="/verify-security-question">
+  <input type="hidden" name="username" value="{{username}}">
+  
+  <label>Question:</label>
+  <p><strong>{{question}}</strong></p>
+  
+  <label>Answer: <input name="answer" required autocomplete="off"></label><br>
+  
+  <button type="submit">Verify Answer</button>
+</form>
+
+{{#if error}}
+<p style="color:red;">{{error}}</p>
+{{/if}}

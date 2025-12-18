@@ -1,41 +1,129 @@
 @import url('https://fonts.googleapis.com/css2?family=Rye&display=swap');
 
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: sans-serif;
-  background-color: #f3f4dd;
-  color: #322828;
-  margin: 40px;
-  padding: 20px;
-  border: 2px solid #ccc;
+  font-family: 'Courier New', Courier, monospace; 
+  background-color: #e8e4c9; 
+  color: #3e2723;
+  margin: 0;
+  padding: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  min-height: 100vh;
+}
+
+.container {
+  background-color: #fffbf0;
+  width: 100%;
+  max-width: 800px;
+  margin: 40px 20px;
+  padding: 40px;
+  border: 2px solid #8d6e63;
+  border-radius: 8px;
+  box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
 }
 
 h1, h2, h3 {
   font-family: 'Rye', serif;
   font-weight: 400; 
+  color: #5d4037;
+  text-align: center;
 }
 
-
-header{
+header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
-img {
-  height: 50px;
+header img {
+  height: 60px;
+}
+
+nav {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 10px;
+  border-top: 1px solid #d7ccc8;
+  border-bottom: 1px solid #d7ccc8;
 }
 
 nav a {
   text-decoration: none;
-  color: #0570cdcb;
-  margin: 0 5px;
+  color: #5d4037;
+  font-weight: bold;
+  margin: 0 10px;
+  transition: color 0.2s;
+}
+
+nav a:hover {
+  color: #8d6e63;
+  text-decoration: underline;
+}
+
+/* Form Styling */
+form {
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+  text-align: left;
+}
+
+input, textarea {
+  padding: 10px;
+  border: 1px solid #bcaaa4;
+  border-radius: 4px;
+  font-family: inherit;
+  background-color: #fafafa;
 }
 
 button {
   cursor: pointer;
+  background-color: #5d4037;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-family: 'Rye', serif;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #3e2723;
+}
+
+/* Utility */
+.text-center {
+  text-align: center;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #d7ccc8;
+  margin: 20px 0;
+}
+
+main {
+  min-height: 200px;
+}
+
+footer {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 0.8rem;
+  color: #8d6e63;
 }

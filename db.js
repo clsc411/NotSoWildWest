@@ -29,7 +29,9 @@ function initDb() {
         failed_login_attempts INTEGER DEFAULT 0,
         lockout_until DATETIME,
         reset_token TEXT,
-        reset_token_expires DATETIME
+        reset_token_expires DATETIME,
+        secret_question TEXT,
+        secret_answer TEXT
       )
     `);
 
@@ -41,6 +43,16 @@ function initDb() {
     }
     try {
       db.exec('ALTER TABLE users ADD COLUMN reset_token_expires DATETIME');
+    } catch (e) {
+      // Column likely exists
+    }
+    try {
+      db.exec('ALTER TABLE users ADD COLUMN secret_question TEXT');
+    } catch (e) {
+      // Column likely exists
+    }
+    try {
+      db.exec('ALTER TABLE users ADD COLUMN secret_answer TEXT');
     } catch (e) {
       // Column likely exists
     }

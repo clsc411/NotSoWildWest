@@ -65,13 +65,16 @@ app.get('/register', (req, res) => {
 
 // create user in database
 app.post('/register', async (req, res) => {
-  const { username, email, displayName, password } = req.body;
+  const { username, email, displayName, password, secretQuestion, secretAnswer } = req.body;
 
   // validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).render('register', {
       error: 'Invalid email format.',
+      username,
+      email,
+      displayName
     });
   }
 
@@ -79,6 +82,9 @@ app.post('/register', async (req, res) => {
   if (displayName === username) {
     return res.status(400).render('register', {
       error: 'Display name must be different from username.',
+      username,
+      email,
+      displayName
     });
   }
 
@@ -87,25 +93,43 @@ app.post('/register', async (req, res) => {
   if (!passwordCheck.valid) {
     return res.status(400).render('register', {
       error: passwordCheck.errors.join(' '),
+      username,
+      email,
+      displayName
+    });
+  }
+
+  // validate secret question/answer
+  if (!secretQuestion || !secretAnswer) {
+    return res.status(400).render('register', {
+      error: 'Security question and answer are required.',
+      username,
+      email,
+      displayName
     });
   }
 
   try {
     const hashedPassword = await hashPassword(password);
-    const stmt = db.prepare('INSERT INTO users (username, email, display_name, password) VALUES (?, ?, ?, ?)');
-    stmt.run(username, email, displayName, hashedPassword);
+    const hashedSecretAnswer = await hashPassword(secretAnswer.trim().toLowerCase()); // Normalize and hash answer
+
+    const stmt = db.prepare('INSERT INTO users (username, email, display_name, password, secret_question, secret_answer) VALUES (?, ?, ?, ?, ?, ?)');
+    stmt.run(username, email, displayName, hashedPassword, secretQuestion, hashedSecretAnswer);
     // redirect to login after register
     res.redirect('/login');
   } catch (err) {
     if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
       // check error field
       if (err.message.includes('users.username')) {
-        return res.status(400).render('register', { error: 'Username already taken.' });
+        return res.status(400).render('register', { error: 'Username already taken.', username, email, displayName });
       } else if (err.message.includes('users.email')) {
-        return res.status(400).render('register', { error: 'Email already registered.' });
+        return res.status(400).render('register', { error: 'Email already registered.', username, email, displayName });
       }
       return res.status(400).render('register', {
         error: 'Username or Email already taken.',
+        username,
+        email,
+        displayName
       });
     }
     console.error(err);
@@ -131,6 +155,7 @@ app.post('/login', async (req, res) => {
       db.prepare('INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)').run(username, req.ip, 0);
       return res.status(403).render('login', {
         error: 'Account is temporarily locked. Please try again later.',
+        username
       });
     }
 
@@ -166,6 +191,7 @@ app.post('/login', async (req, res) => {
       }
 
       return res.status(401).render('login', {
+        username,
         error: 'Invalid username or password.',
       });
     }
@@ -539,15 +565,53 @@ app.get('/forgot-password', (req, res) => {
 
 // handle forgot password
 app.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
+  const { username } = req.body;
 
   try {
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
 
     if (!user) {
-      // do not reveal email existence
       return res.render('forgotPassword', {
-        success: 'If an account with that email exists, a password reset link has been sent.'
+        error: 'User not found.'
+      });
+    }
+
+    if (!user.secret_question || !user.secret_answer) {
+      return res.render('forgotPassword', {
+        error: 'This account does not have a security question set up. Please contact support.'
+      });
+    }
+
+    res.render('securityQuestion', {
+      username: user.username,
+      question: user.secret_question
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// verify security question
+app.post('/verify-security-question', async (req, res) => {
+  const { username, answer } = req.body;
+
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+
+    if (!user) {
+      return res.redirect('/forgot-password');
+    }
+
+    // verify answer
+    const validAnswer = await comparePassword(answer.trim().toLowerCase(), user.secret_answer);
+    
+    if (!validAnswer) {
+      return res.render('securityQuestion', {
+        username: user.username,
+        question: user.secret_question,
+        error: 'Incorrect answer.'
       });
     }
 
@@ -559,34 +623,8 @@ app.post('/forgot-password', async (req, res) => {
     db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?')
       .run(token, expires, user.id);
 
-    const resetLink = `http://159.203.136.153:${PORT}/reset-password/${token}`;
-
-    // send email
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
-
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: 'Password Reset - NotSoWildWest Forum',
-        text: `You requested a password reset. Click the link below to reset your password:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.`,
-        html: `<p>You requested a password reset.</p><p>Click the link below to reset your password:</p><a href="${resetLink}">${resetLink}</a><p>If you did not request this, please ignore this email.</p>`
-      });
-      console.log(`[EMAIL SENT] Password reset link sent to ${email}`);
-    } else {
-      console.log(`[MOCK EMAIL] Password reset link for ${email}: ${resetLink}`);
-      console.log('To enable real emails, configure EMAIL_USER and EMAIL_PASS in .env');
-    }
-
-    res.render('forgotPassword', {
-      success: 'If an account with that email exists, a password reset link has been sent.'
-    });
+    // redirect to reset password page
+    res.redirect(`/reset-password/${token}`);
 
   } catch (err) {
     console.error(err);

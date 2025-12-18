@@ -1,9 +1,22 @@
 <h2>Register</h2>
 <form method="POST" action="/register">
-  <label>Username: <input name="username" required></label><br>
-  <label>Email: <input type="email" name="email" required></label><br>
-  <label>Display Name: <input name="displayName" required></label><br>
+  <label>Username: <input name="username" value="{{username}}" required></label><br>
+  <label>Email: <input type="email" name="email" value="{{email}}" required></label><br>
+  <label>Display Name: <input name="displayName" value="{{displayName}}" required></label><br>
   <label>Password: <input type="password" name="password" required></label><br>
+  
+  <h3>Security Question (for password recovery)</h3>
+  <label>Question: 
+    <select name="secretQuestion" required>
+      <option value="" disabled selected>Select a question...</option>
+      <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+      <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+      <option value="What city were you born in?">What city were you born in?</option>
+      <option value="What is the name of your favorite teacher?">What is the name of your favorite teacher?</option>
+    </select>
+  </label><br>
+  <label>Answer: <input name="secretAnswer" required></label><br>
+
   <button type="submit">Register</button>
 </form>
 
