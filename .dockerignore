@@ -1,4 +1,7 @@
-node_modulus #handled by npm install 
+node_modules #handled by npm install 
+data
+npm-data
+npm-letsencrypt
 
 nginx #for other container 
 .git
