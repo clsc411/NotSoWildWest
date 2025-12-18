@@ -3,3 +3,4 @@ node_modules
 npm-data
 npm-letsencrypt
 *.db
+data/*.db

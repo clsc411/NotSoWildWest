@@ -2,12 +2,19 @@ services:
   nodejs:
     build: .                       # Build the node.js app from the current directory
     container_name: wildwest-node  # name the container for node.js
+    restart: always
+    environment:
+      - PORT=3000
+      - DB_PATH=/app/data/forum.db
+    volumes:
+      - ./data:/app/data           # Persist database
     expose:
       - "3000"                    # Expose port 3000 to other containers (not to host)
 
   nginx:
     build: ./nginx                # build the nginx image from the ./nginx directory
     container_name: wildwest-nginx # Name the container for nginx
+    restart: always
     expose:
       - "80"                      # Expose port 80 to other containers (NPM will proxy to this)
     depends_on:
