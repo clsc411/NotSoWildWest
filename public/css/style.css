@@ -6,7 +6,9 @@
 
 body {
   font-family: 'Courier New', Courier, monospace; 
-  background-color: #e8e4c9; 
+  background-color: #e8e4c9;
+  background-image: radial-gradient(#d7ccc8 1px, transparent 1px);
+  background-size: 20px 20px;
   color: #3e2723;
   margin: 0;
   padding: 0;
@@ -21,16 +23,23 @@ body {
   max-width: 800px;
   margin: 40px 20px;
   padding: 40px;
-  border: 2px solid #8d6e63;
-  border-radius: 8px;
-  box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
+  border: 8px solid #5d4037;
+  outline: 2px dashed #8d6e63;
+  outline-offset: -15px;
+  box-shadow: 10px 10px 20px rgba(0,0,0,0.2);
+  position: relative;
 }
+
+/* "Wanted" poster corner effect (optional, keeping it simple for now) */
 
 h1, h2, h3 {
   font-family: 'Rye', serif;
   font-weight: 400; 
   color: #5d4037;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 0;
 }
 
 header {
@@ -38,32 +47,36 @@ header {
   align-items: center;
   justify-content: center;
   gap: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 header img {
-  height: 60px;
+  height: 80px;
+  filter: sepia(100%); /* Make logo look old */
 }
 
 nav {
   text-align: center;
-  margin-bottom: 30px;
-  padding: 10px;
-  border-top: 1px solid #d7ccc8;
-  border-bottom: 1px solid #d7ccc8;
+  margin-bottom: 40px;
+  padding: 15px;
+  border-top: 2px solid #5d4037;
+  border-bottom: 2px solid #5d4037;
+  background-color: #efebe9;
 }
 
 nav a {
   text-decoration: none;
-  color: #5d4037;
+  color: #3e2723;
   font-weight: bold;
-  margin: 0 10px;
-  transition: color 0.2s;
+  margin: 0 15px;
+  font-family: 'Rye', serif;
+  font-size: 1.1rem;
+  transition: all 0.2s;
 }
 
 nav a:hover {
-  color: #8d6e63;
-  text-decoration: underline;
+  color: #d84315; /* Burnt orange */
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
 }
 
 /* Form Styling */
@@ -72,7 +85,11 @@ form {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
+  background: #fff8e1;
+  padding: 20px;
+  border: 1px solid #d7ccc8;
+  box-shadow: 3px 3px 0 rgba(93, 64, 55, 0.2);
 }
 
 label {
@@ -80,30 +97,77 @@ label {
   flex-direction: column;
   font-weight: bold;
   text-align: left;
+  font-size: 0.9rem;
+  color: #5d4037;
 }
 
-input, textarea {
+input, textarea, select {
   padding: 10px;
-  border: 1px solid #bcaaa4;
-  border-radius: 4px;
-  font-family: inherit;
-  background-color: #fafafa;
+  border: none;
+  border-bottom: 2px solid #8d6e63;
+  border-radius: 0;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: transparent;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-bottom-color: #d84315;
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 button {
   cursor: pointer;
   background-color: #5d4037;
   color: #fff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
+  border: 2px solid #3e2723;
+  padding: 12px 25px;
+  border-radius: 0;
   font-family: 'Rye', serif;
-  font-size: 1rem;
-  transition: background-color 0.2s;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+  box-shadow: 3px 3px 0 #3e2723;
+  margin-top: 10px;
 }
 
 button:hover {
-  background-color: #3e2723;
+  background-color: #4e342e;
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 #3e2723;
+}
+
+button:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+/* Comments List Styling */
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  background-color: #fff;
+  border: 1px solid #d7ccc8;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+  position: relative;
+}
+
+li::before {
+  /* "Pin" or "Bullet" effect */
+  content: '★';
+  color: #8d6e63;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 0.8rem;
 }
 
 /* Utility */
@@ -113,8 +177,8 @@ button:hover {
 
 hr {
   border: 0;
-  border-top: 1px solid #d7ccc8;
-  margin: 20px 0;
+  border-top: 2px dashed #d7ccc8;
+  margin: 30px 0;
 }
 
 main {
@@ -123,7 +187,8 @@ main {
 
 footer {
   text-align: center;
-  margin-top: 40px;
-  font-size: 0.8rem;
+  margin-top: 50px;
+  font-size: 0.9rem;
   color: #8d6e63;
+  font-style: italic;
 }
