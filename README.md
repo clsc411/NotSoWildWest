@@ -1,4 +1,4 @@
-# Wild Wild West Forum - First Github Connection
+# Wild Wild West Forum
 **Name:** Clara Scalzer  
 **Project:** Midterm Project - Wild West Forum  
 **Course:** COS 498 - Server Side Web-Development 
@@ -33,23 +33,7 @@ This forum is a basic node.js and express web app using handlebars for templates
 **4.** Open the app in your browser at your domain (e.g., `https://example.com`).
 **5.** To stop the running app: ' sudo docker compose down '
 
-<<<<<<< HEAD
-## Configuration
+**GenAI was used for assistance with styling issues and README formatting and template**
 
-### Email Service (Gmail)
-To enable password reset emails, you need to configure a Gmail account.
-
-1.  Create a `.env` file in the root directory (copy from `.env.example`):
-    ```bash
-    cp .env.example .env
-    ```
-2.  Edit `.env` and add your Gmail credentials:
-    ```env
-    EMAIL_SERVICE=gmail
-    EMAIL_USER=your-email@gmail.com
-    EMAIL_PASS=your-app-password
-    ```
-    *Note: For Gmail, you must use an **App Password**, not your regular password. Go to Google Account > Security > 2-Step Verification > App passwords to generate one.*
-=======
 **NOTE:** GenAI was used for help with clean ReadME formatting help, CSS styling fixes 
 >>>>>>> a495faeb6df726e133e630e125166cc3e139ca01
