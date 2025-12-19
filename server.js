@@ -150,13 +150,17 @@ app.post('/login', async (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
     
     // check if account locked
-    if (user && user.lockout_until && new Date(user.lockout_until) > new Date()) {
-      // log blocked attempt
-      db.prepare('INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)').run(username, req.ip, 0);
-      return res.status(403).render('login', {
-        error: 'Account is temporarily locked. Please try again later.',
-        username
-      });
+    if (user && user.lockout_until) {
+      const lockoutTime = new Date(user.lockout_until);
+      if (lockoutTime > new Date()) {
+        console.log(`[LOGIN] Blocked attempt for locked user: ${username}`);
+        // log blocked attempt
+        db.prepare('INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)').run(username, req.ip, 0);
+        return res.status(403).render('login', {
+          error: 'Account is temporarily locked. Please try again later.',
+          username
+        });
+      }
     }
 
     let success = false;
@@ -184,6 +188,7 @@ app.post('/login', async (req, res) => {
         // lockout after 5 failed attempts
         if (newFailedAttempts >= 5) {
           lockoutUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+          console.log(`[LOGIN] Locking out user ${username} until ${lockoutUntil}`);
         }
 
         db.prepare('UPDATE users SET failed_login_attempts = ?, lockout_until = ? WHERE id = ?')
@@ -523,9 +528,20 @@ app.post('/change-password', async (req, res) => {
 
   const { currentPassword, newPassword } = req.body;
 
+  if (!currentPassword || !newPassword) {
+    return res.status(400).render('changePassword', {
+      error: 'All fields are required.',
+    });
+  }
+
   try {
     // get current user
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+
+    if (!user) {
+      console.error(`[CHANGE-PASSWORD] User not found for ID: ${req.session.userId}`);
+      return res.status(404).send('User not found');
+    }
 
     // verify current password
     const validCurrent = await comparePassword(currentPassword, user.password);
@@ -553,7 +569,7 @@ app.post('/change-password', async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error('[CHANGE-PASSWORD ERROR]', err);
     res.status(500).send('Internal Server Error');
   }
 });
