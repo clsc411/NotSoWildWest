@@ -564,9 +564,9 @@ app.post('/change-password', async (req, res) => {
     db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedNewPassword, req.session.userId);
 
     // invalidate session
-    req.session.destroy(() => {
-      res.redirect('/login');
-    });
+    req.session.userId = null;
+    req.session.username = null;
+    res.redirect('/login');
 
   } catch (err) {
     console.error('[CHANGE-PASSWORD ERROR]', err);
